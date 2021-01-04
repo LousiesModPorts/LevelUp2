@@ -1,143 +1,133 @@
 buildscript {
     repositories {
+        maven { url = 'https://files.minecraftforge.net/maven' }
         jcenter()
-        maven {
-            name = "forge"
-            url = "https://files.minecraftforge.net/maven"
-        }
-        maven { url = 'https://repo.spongepowered.org/maven' }
-        maven {
-            //name = "sonatype-nexus-public"
-            //url = "https://oss.sonatype.org/content/repositories/public/"
-            url 'https://plugins.gradle.org/m2/'
-        }
+        mavenCentral()
     }
     dependencies {
-        classpath "net.minecraftforge.gradle:ForgeGradle:2.3-SNAPSHOT"
-        classpath "org.spongepowered:mixingradle:0.6-SNAPSHOT"
-        //classpath "com.github.jengelman.gradle.plugins:shadow:2.0.2"
-        classpath "gradle.plugin.com.matthewprenger:CurseGradle:1.4.0"
+        classpath group: 'net.minecraftforge.gradle', name: 'ForgeGradle', version: '3.+', changing: true
     }
 }
+apply plugin: 'net.minecraftforge.gradle'
+apply plugin: 'eclipse'
+apply plugin: 'maven-publish'
 
-apply plugin: "net.minecraftforge.gradle.forge"
-apply plugin: "org.spongepowered.mixin"
-//apply plugin: "com.github.johnrengelman.shadow"
-apply plugin: "com.matthewprenger.cursegradle"
-
-version = modVersion
-group = modGroup
-archivesBaseName = modBaseName
-
-minecraft {
-    version = project.forgeVersion
-    runDir = "run"
-
-    // the mappings can be changed at any time, and must be in the following format.
-    // snapshot_YYYYMMDD   snapshot are built nightly.
-    // stable_#            stables are built at the discretion of the MCP team.
-    // Use non-default mappings at your own risk. they may not always work.
-    // simply re-run your setup task after changing the mappings to update your workspace.
-    mappings = project.mcpVersion
-    // makeObfSourceJar = false // an Srg named sources jar is made by default. uncomment this to disable.
-}
-
-configurations {
-    embed
-    implementation.extendsFrom(embed)
-}
+version = '1.16-1.0.0'
+group = 'com.lousiesports.openblocksreborn'
+archivesBaseName = 'OpenBlocksReborn'
 
 repositories {
-    mavenCentral()
-    //maven {
-        //name = 'sonatype-nexus-public'
-        //url = 'https://oss.sonatype.org/content/repositories/public/'
-    //}
     maven {
-        name = "CurseForge"
-        url = "https://minecraft.curseforge.com/api/maven/"
+        name "JEI"
+        url "https://dvs1.progwml6.com/files/maven"
     }
-    maven { url "https://repo.spongepowered.org/maven"}
+
+    maven {
+        name "TOP"
+        url "https://maven.tterrag.com/"
+    }
 }
+
+sourceCompatibility = targetCompatibility = compileJava.sourceCompatibility = compileJava.targetCompatibility = '1.8' // Need this here so eclipse task generates correctly.
+
+println('Java: ' + System.getProperty('java.version') + ' JVM: ' + System.getProperty('java.vm.version') + '(' + System.getProperty('java.vendor') + ') Arch: ' + System.getProperty('os.arch'))
+minecraft {
+    mappings channel: 'snapshot', version: '20201028-1.16.3'
+
+    runs {
+        client {
+            workingDirectory project.file('run')
+
+            // Recommended logging data for a userdev environment
+            property 'forge.logging.markers', 'SCAN,REGISTRIES,REGISTRYDUMP'
+
+            // Recommended logging level for the console
+            property 'forge.logging.console.level', 'debug'
+
+            mods {
+                examplemod {
+                    source sourceSets.main
+                }
+            }
+        }
+
+        server {
+            workingDirectory project.file('run')
+
+            // Recommended logging data for a userdev environment
+            property 'forge.logging.markers', 'SCAN,REGISTRIES,REGISTRYDUMP'
+
+            // Recommended logging level for the console
+            property 'forge.logging.console.level', 'debug'
+
+            mods {
+                examplemod {
+                    source sourceSets.main
+                }
+            }
+        }
+
+        data {
+            workingDirectory project.file('run')
+
+            // Recommended logging data for a userdev environment
+            property 'forge.logging.markers', 'SCAN,REGISTRIES,REGISTRYDUMP'
+
+            // Recommended logging level for the console
+            property 'forge.logging.console.level', 'debug'
+
+            // Specify the modid for data generation, where to output the resulting resource, and where to look for existing resources.
+            args '--mod', 'examplemod', '--all', '--output', file('src/generated/resources/'), '--existing', file('src/main/resources/')
+
+            mods {
+                examplemod {
+                    source sourceSets.main
+                }
+            }
+        }
+    }
+}
+
+sourceSets.main.resources { srcDir 'src/generated/resources' }
 
 dependencies {
-    compile files('libs/')
+    minecraft "net.minecraftforge:forge:1.16.4-35.1.28"
+    //compileOnly fg.deobf("mezz.jei:jei-${jei_version}:api")
+    //untimeOnly fg.deobf("mezz.jei:jei-${jei_version}")
+    //compileOnly fg.deobf("mcjty.theoneprobe:TheOneProbe-1.16:${top_version}:api")
+    //runtimeOnly fg.deobf("mcjty.theoneprobe:TheOneProbe-1.16:${top_version}")
 
-    //compile "org.spongepowered:mixin:0.7.10-SNAPSHOT"
-    embed("org.spongepowered:mixin:0.8") {transitive = false}
 }
 
-//Fix forges AT breaking everything because the AT checker is stupid
-[tasks.deobfMcMCP, tasks.deobfMcSRG].each { it.failOnAtError = false }
-
-jar{
-    from(configurations.embed.collect { it.isDirectory() ? it : zipTree(it) }) {
-        exclude "LICENSE.txt", "META-INF/MANIFSET.MF", "META-INF/maven/**", "META-INF/*.RSA", "META-INF/*.SF"
-    }
-
+jar {
     manifest {
-        attributes(
-                "FMLAT": 'lu_at.cfg',
-                "FMLCorePluginContainsFMLMod": true,
-                'ForceLoadAsMod': true,
-                "TweakClass": "org.spongepowered.asm.launch.MixinTweaker",
-                'TweakOrder': 0,
-                "FMLCorePlugin": "levelup2.core.LevelUpCore",
-                "MixinConfigs": "levelup2.mixins.json"
-        )
+        attributes([
+                "Specification-Title": "examplemod",
+                "Specification-Vendor": "examplemodsareus",
+                "Specification-Version": "1", // We are version 1 of ourselves
+                "Implementation-Title": project.name,
+                "Implementation-Version": "${version}",
+                "Implementation-Vendor" :"examplemodsareus",
+                "Implementation-Timestamp": new Date().format("yyyy-MM-dd'T'HH:mm:ssZ")
+        ])
     }
 }
 
-//shadowJar {
-//    mainSpec.sourcePaths.clear()
-//    dependsOn reobfJar
-//    classifier 'shaded'
-//    exclude 'dummyThing'
-//    exclude 'MixinBootstrap-1.0.2.jar'
-//    exclude 'FastFurnace-1.12.2-1.3.1-dev.jar'
-//    dependencies {
-//        include dependency('org.spongepowered:mixin')
-//    }
-//    afterEvaluate {
-//        from zipTree(reobfJar.jar)
-//    }
-//}
+// Example configuration to allow publishing using the maven-publish task
+// This is the preferred method to reobfuscate your jar file
+jar.finalizedBy('reobfJar')
+// However if you are in a multi-project build, dev time needs unobfed jar files, so you can delay the obfuscation until publishing by doing
+//publish.dependsOn('reobfJar')
 
-task deobfJar(type: Jar) {
-    from sourceSets.main.output
-    classifier "dev"
-}
-
-task sourcesJar(type: Jar, dependsOn: classes) {
-    description = 'Creates a JAR containing the source code.'
-    from sourceSets.main.allSource
-    classifier = 'sources'
-}
-
-artifacts {
-    archives deobfJar
-    archives sourcesJar
-}
-
-mixin {
-    add sourceSets.main, "mixins.levelup2.refmap.json"
-}
-
-processResources {
-    // this will ensure that this task is redone when the versions change.
-    inputs.property "version", project.version
-    inputs.property "mcversion", project.minecraft.version
-
-    // replace stuff in mcmod.info, nothing else
-    from(sourceSets.main.resources.srcDirs) {
-        include "mcmod.info"
-
-        // replace version and mcversion
-        expand "version": project.version, "mcversion": project.minecraft.version
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            artifact jar
+        }
     }
-
-    // copy everything else, thats not the mcmod.info
-    from(sourceSets.main.resources.srcDirs) {
-        exclude "mcmod.info"
+    repositories {
+        maven {
+            url "file:///${project.projectDir}/mcmodsrepo"
+        }
     }
 }
