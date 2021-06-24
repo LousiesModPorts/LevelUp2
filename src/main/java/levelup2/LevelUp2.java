@@ -35,9 +35,10 @@ import net.minecraftforge.registries.IForgeRegistry;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-@Mod(modid = LevelUp2.ID, name = "Level Up! Reloaded", version = "${version}")
-public class LevelUp2 {
-    public static final String ID = "levelup2";
+@Mod(modid = LevelUp2.ID)
+public class LevelUp2
+{
+    public static final String ID = "moarlevels";
     @Mod.Instance(value = ID)
     public static LevelUp2 INSTANCE;
     @SidedProxy(clientSide = "levelup2.proxy.ClientProxy", serverSide = "levelup2.proxy.CommonProxy")
@@ -46,7 +47,8 @@ public class LevelUp2 {
     public static final Logger LOGGER = LogManager.getLogger();
 
     @Mod.EventHandler
-    public void preInit(FMLPreInitializationEvent evt) {
+    public void preInit(FMLPreInitializationEvent evt)
+    {
         LevelUpConfig.init(evt.getSuggestedConfigurationFile());
         CapabilityManager.INSTANCE.register(IPlayerClass.class, new PlayerCapability.CapabilityPlayerClass<>(), PlayerExtension.class);
         CapabilityManager.INSTANCE.register(IProcessor.class, new PlayerCapability.CapabilityProcessorClass<>(), PlayerCapability.CapabilityProcessorDefault.class);
@@ -58,7 +60,8 @@ public class LevelUp2 {
     }
 
     @Mod.EventHandler
-    public void init(FMLInitializationEvent evt) {
+    public void init(FMLInitializationEvent evt)
+    {
         proxy.registerGui();
         SkillPacketHandler.init();
         SkillRegistry.loadSkills();
@@ -66,7 +69,8 @@ public class LevelUp2 {
     }
 
     @Mod.EventHandler
-    public void postInit(FMLPostInitializationEvent evt) {
+    public void postInit(FMLPostInitializationEvent evt)
+    {
         LevelUpConfig.getBlacklistOutputs();
         SkillRegistry.postLoadSkills();
         LevelUpConfig.registerSkillProperties();
@@ -75,9 +79,11 @@ public class LevelUp2 {
     }
 
     @Mod.EventBusSubscriber(modid = LevelUp2.ID)
-    public static class RegistryEventHandler {
+    public static class RegistryEventHandler
+    {
         @SubscribeEvent
-        public static void registerItems(RegistryEvent.Register<Item> evt) {
+        public static void registerItems(RegistryEvent.Register<Item> evt)
+        {
             IForgeRegistry<Item> reg = evt.getRegistry();
             registerItem(reg, SkillRegistry.surfaceOreChunk);
             registerItem(reg, SkillRegistry.netherOreChunk);
@@ -87,33 +93,43 @@ public class LevelUp2 {
         }
 
         @SubscribeEvent
-        public static void registerRecipes(RegistryEvent.Register<IRecipe> evt) {
+        public static void registerRecipes(RegistryEvent.Register<IRecipe> evt)
+        {
             IForgeRegistry<IRecipe> reg = evt.getRegistry();
             reg.register(new ShapelessOreRecipe(new ResourceLocation("levelup2", "reclaim"), new ItemStack(Blocks.GRAVEL, 4), Items.FLINT, Items.FLINT, Items.FLINT, Items.FLINT).setRegistryName(new ResourceLocation("levelup2", "gravel")));
             oreLoad(reg);
             SkillRegistry.initPlankCache();
         }
 
-        private static void oreLoad(IForgeRegistry<IRecipe> reg) {
-            if (!Library.ALL_ORES.isEmpty()) {
-                for (OreChunkStorage stor : Library.ALL_ORES) {
+        private static void oreLoad(IForgeRegistry<IRecipe> reg)
+        {
+            if (!Library.ALL_ORES.isEmpty())
+            {
+                for (OreChunkStorage stor : Library.ALL_ORES)
+                {
                     registerOreRecipe(reg, stor);
                 }
             }
         }
 
-        private static void registerItem(IForgeRegistry<Item> reg, Item item) {
+        private static void registerItem(IForgeRegistry<Item> reg, Item item)
+        {
             reg.register(item);
         }
 
-        private static void registerOreRecipe(IForgeRegistry<IRecipe> reg, OreChunkStorage stor) {
+        private static void registerOreRecipe(IForgeRegistry<IRecipe> reg, OreChunkStorage stor)
+        {
             String oreName = stor.getOreName();
-            if (OreDictionary.doesOreNameExist(oreName)) {
+
+            if (OreDictionary.doesOreNameExist(oreName))
+            {
                 ItemStack ore = SkillRegistry.getOreEntry(oreName);
                 ItemStack chunk = new ItemStack(stor.getBaseItem(), 1, stor.getMetadata());
-                if (!ore.isEmpty()) {
+                if (!ore.isEmpty())
+                {
                     reg.register(new ShapelessOreRecipe(new ResourceLocation("levelup2", "orechunk"), ore.copy(), chunk, chunk).setRegistryName("levelup2", oreName.toLowerCase()));
                 }
+
                 OreDictionary.registerOre(oreName, chunk);
             }
         }

@@ -7,21 +7,19 @@ import levelup2.config.LevelUpConfig;
 import levelup2.config.OreChunkStorage;
 import levelup2.skills.SkillRegistry;
 import net.minecraft.block.Block;
-import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.init.Blocks;
+import net.minecraft.block.Blocks;
+import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.item.BlockItem;
 import net.minecraft.item.Item;
-import net.minecraft.item.ItemBlock;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.ResourceLocation;
-import net.minecraft.world.storage.loot.functions.LootFunctionManager;
+import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.common.UsernameCache;
-import net.minecraftforge.fml.common.FMLCommonHandler;
-import net.minecraftforge.fml.relauncher.Side;
-import net.minecraftforge.oredict.OreDictionary;
 
 import java.util.*;
 
-public class Library {
+public class Library
+{
     public static int[] tenLevels = {5, 7, 11, 13, 17, 23, 29, 31, 37, 41};
     public static int[] fiveLevels = {11, 17, 29, 37, 41};
     public static int[] highTenLevels = {11, 17, 23, 29, 37, 41, 43, 47, 51, 53};
@@ -39,49 +37,66 @@ public class Library {
     public static Set<String> CLASSES;
     public static Set<String> SKILLS;
 
-    public static EntityPlayer getPlayerFromUsername(String username) {
-        if (FMLCommonHandler.instance().getEffectiveSide() == Side.CLIENT)
+    public static EntityPlayer getPlayerFromUsername(String username)
+    {
+        if (FMLCommonHandler.instance().getEffectiveSide() == Dist.CLIENT)
             return null;
         return FMLCommonHandler.instance().getMinecraftServerInstance().getPlayerList().getPlayerByUsername(username);
     }
 
-    public static EntityPlayer getPlayerFromUUID(UUID uuid) {
+    public static PlayerEntity getPlayerFromUUID(UUID uuid)
+    {
         return getPlayerFromUsername(getUsernameFromUUID(uuid));
     }
 
-    public static String getUsernameFromUUID(UUID uuid) {
+    public static String getUsernameFromUUID(UUID uuid)
+    {
         return UsernameCache.getLastKnownUsername(uuid);
     }
 
-    public static Set<Block> getOreList() {
+    public static Set<Block> getOreList()
+    {
         return ores;
     }
 
-    public static ItemStack getOreChunk(ItemStack stack, Random rand, int fortune) {
-        for (OreChunkStorage stor : ALL_ORES) {
-            if (stor.oreMatches(stack)) {
+    public static ItemStack getOreChunk(ItemStack stack, Random rand, int fortune)
+    {
+        for (OreChunkStorage stor : ALL_ORES)
+        {
+            if (stor.oreMatches(stack))
+            {
                 return stor.getHarvestItem(rand, fortune);
             }
         }
+
         return ItemStack.EMPTY;
     }
 
-    public static ItemStack getChunkFromName(String oreName, int fortune) {
-        if (oreToChunk.containsKey(oreName)) {
+    public static ItemStack getChunkFromName(String oreName, int fortune)
+    {
+        if (oreToChunk.containsKey(oreName))
+        {
             ItemStack chunk = oreToChunk.get(oreName).copy();
             chunk.grow(fortune);
             return chunk;
         }
+
         return ItemStack.EMPTY;
     }
 
-    public static void registerOres(List<String> oreNames) {
-        for (String ore : oreNames) {
-            if (OreDictionary.doesOreNameExist(ore)) {
-                if (!OreDictionary.getOres(ore).isEmpty()) {
-                    for (ItemStack stack : OreDictionary.getOres(ore)) {
-                        if (stack.getItem() instanceof ItemBlock) {
-                            Block block = ((ItemBlock)stack.getItem()).getBlock();
+    public static void registerOres(List<String> oreNames)
+    {
+        for (String ore : oreNames)
+        {
+            if (OreDictionary.doesOreNameExist(ore))
+            {
+                if (!OreDictionary.getOres(ore).isEmpty())
+                {
+                    for (ItemStack stack : OreDictionary.getOres(ore))
+                    {
+                        if (stack.getItem() instanceof BlockItem)
+                        {
+                            Block block = ((BlockItem)stack.getItem()).getBlock();
                             if (!ores.contains(block))
                                 ores.add(block);
                         }
@@ -89,20 +104,28 @@ public class Library {
                 }
             }
         }
-        if (!LevelUpConfig.oreBlocks.isEmpty()) {
-            for (String ore : LevelUpConfig.oreBlocks) {
+
+        if (!LevelUpConfig.oreBlocks.isEmpty())
+        {
+            for (String ore : LevelUpConfig.oreBlocks)
+            {
                 Block block = Block.REGISTRY.getObject(new ResourceLocation(ore));
-                if (block != Blocks.AIR) {
+
+                if (block != Blocks.AIR)
+                {
                     ores.add(block);
                 }
             }
         }
     }
 
-    public static void assignExperienceValues(List<String> oreNames, List<Integer> oreValue) {
-        for (int i = 0; i < oreNames.size(); i++) {
+    public static void assignExperienceValues(List<String> oreNames, List<Integer> oreValue)
+    {
+        for (int i = 0; i < oreNames.size(); i++)
+        {
             String oreName = oreNames.get(i);
-            if (!oreName.equals("null")) {
+            if (!oreName.equals("null"))
+            {
                 int value = i < oreValue.size() ? oreValue.get(i) : 1;
                 if (value > 0)
                     SkillRegistry.addStackToOreBonus(oreName, value);
@@ -119,9 +142,12 @@ public class Library {
         return 0;
     }
 
-    public static String getOreNameForBlock(ItemStack blockStack) {
-        for (OreChunkStorage stor : ALL_ORES) {
-            if (stor.oreMatches(blockStack)) {
+    public static String getOreNameForBlock(ItemStack blockStack)
+    {
+        for (OreChunkStorage stor : ALL_ORES)
+        {
+            if (stor.oreMatches(blockStack))
+            {
                 return stor.getOreName();
             }
         }/*
@@ -151,36 +177,45 @@ public class Library {
         return false;
     }
 
-    public static void registerOreToChunk(List<String> ores, Item item) {
-        for (int i = 0; i < ores.size(); i++) {
+    public static void registerOreToChunk(List<String> ores, Item item)
+    {
+        for (int i = 0; i < ores.size(); i++)
+        {
             oreToChunk.put(ores.get(i), new ItemStack(item, 2, i));
         }
     }
 
-    public static void removeFromList(List<ItemStack> drops, ItemStack toRemove) {
+    public static void removeFromList(List<ItemStack> drops, ItemStack toRemove)
+    {
         Iterator<ItemStack> itr = drops.iterator();
-        while (itr.hasNext()) {
+        while (itr.hasNext())
+        {
             ItemStack drop = itr.next();
-            if (!drop.isEmpty() && ItemStack.areItemsEqual(toRemove, drop)) {
+            if (!drop.isEmpty() && ItemStack.isSame(toRemove, drop))
+            {
                 itr.remove();
             }
         }
     }
 
-    public static void registerLootManager() {
+    public static void registerLootManager()
+    {
         LootFunctionManager.registerFunction(new FortuneEnchantBonus.Serializer());
         LEVELUP_MANAGER = new LevelUpLootManager();
     }
 
-    public static LevelUpLootManager getLootManager() {
+    public static LevelUpLootManager getLootManager()
+    {
         return LEVELUP_MANAGER;
     }
 
-    public static Set<ResourceLocation> getLootTables() {
+    public static Set<ResourceLocation> getLootTables()
+    {
         return LOOT_TABLES;
     }
 
-    public static void registerLootTableLocations(Set<String> files) {
+    public static void registerLootTableLocations(Set<String> files)
+    {
         files.stream().forEach(s -> LOOT_TABLES.add(new ResourceLocation("levelup", s)));
     }
 

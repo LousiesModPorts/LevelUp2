@@ -16,6 +16,8 @@ import levelup2.util.ClassProperties;
 import levelup2.util.SkillProperties;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.player.EntityPlayerMP;
+import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.entity.player.ServerPlayerEntity;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.network.INetHandler;
@@ -23,25 +25,33 @@ import net.minecraft.network.NetHandlerPlayServer;
 import net.minecraft.network.PacketBuffer;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.text.TextComponentTranslation;
+import net.minecraft.util.text.TranslationTextComponent;
 import net.minecraftforge.common.MinecraftForge;
+import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.FMLCommonHandler;
+import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 import net.minecraftforge.fml.common.network.ByteBufUtils;
 import net.minecraftforge.fml.common.network.FMLEventChannel;
 import net.minecraftforge.fml.common.network.FMLNetworkEvent;
 import net.minecraftforge.fml.common.network.NetworkRegistry;
 import net.minecraftforge.fml.common.network.internal.FMLProxyPacket;
+import net.minecraftforge.fml.network.NetworkEvent;
+import net.minecraftforge.fml.network.NetworkRegistry;
+import net.minecraftforge.fml.network.simple.SimpleChannel;
 import net.minecraftforge.fml.relauncher.Side;
 
 import java.util.Map;
 
-public class SkillPacketHandler {
+@Mod.EventBusSubscriber
+public class SkillPacketHandler
+{
     public static final String[] CHANNELS = {"levelupinit", "levelupclasses", "levelupskills", "levelupcfg", "levelupproperties", "leveluprefresh", "levelupclass", "leveluptoggle", "levelchange", "levelreturn"};
-    public static FMLEventChannel initChannel, classChannel, skillChannel, configChannel, propertyChannel, refreshChannel, classPropChannel, toggleChannel, levelChannel, levelReturn;
+    public static SimpleChannel initChannel, classChannel, skillChannel, configChannel, propertyChannel, refreshChannel, classPropChannel, toggleChannel, levelChannel, levelReturn;
 
     public static void init() {
         SkillPacketHandler handler = new SkillPacketHandler();
-        initChannel = NetworkRegistry.INSTANCE.newEventDrivenChannel(CHANNELS[0]);
+        initChannel = NetworkRegistry.newSimpleChannel(CHANNELS[0]);
         initChannel.register(handler);
         classChannel = NetworkRegistry.INSTANCE.newEventDrivenChannel(CHANNELS[1]);
         classChannel.register(handler);
@@ -65,12 +75,19 @@ public class SkillPacketHandler {
     }
 
     @SubscribeEvent
-    public void onServerPacket(FMLNetworkEvent.ServerCustomPacketEvent evt) {
+    public static void onServerPacket(NetworkEvent.ServerCustomPayloadEvent evt)
+    {
         ByteBuf in = evt.getPacket().payload();
-        EntityPlayerMP player = ((NetHandlerPlayServer)evt.getHandler()).player;
-        if (evt.getPacket().channel().equals(CHANNELS[1])) {
+
+        ServerPlayerEntity player = ((NetHandlerPlayServer)evt.getHandler()).player;
+
+        if (evt.getPacket().channel().equals(CHANNELS[1]))
+        {
             addTask(evt.getHandler(), () -> handleClassChange(in, player));
-        } else if (evt.getPacket().channel().equals(CHANNELS[2])) {
+        }
+
+        else if (evt.getPacket().channel().equals(CHANNELS[2]))
+        {
             addTask(evt.getHandler(), () -> handlePacket(in, player));
         } else if (evt.getPacket().channel().equals(CHANNELS[7])) {
             addTask(evt.getHandler(), () -> toggleActive(player));
@@ -80,9 +97,11 @@ public class SkillPacketHandler {
     }
 
     @SubscribeEvent
-    public void onClientPacket(FMLNetworkEvent.ClientCustomPacketEvent evt) {
+    public static void onClientPacket(NetworkEvent.ClientCustomPayloadEvent evt)
+    {
         ByteBuf in = evt.getPacket().payload();
-        if (evt.getPacket().channel().equals(CHANNELS[0])) {
+        if (evt.getPacket().channel().equals(CHANNELS[0]))
+        {
             addTask(evt.getHandler(), () -> handleSkillsPacket(in, LevelUp2.proxy.getPlayer()));
         } else if (evt.getPacket().channel().equals(CHANNELS[3])) {
             addTask(evt.getHandler(), () -> handleConfig(in));
@@ -96,27 +115,35 @@ public class SkillPacketHandler {
             addTask(evt.getHandler(), () -> handleLevelPacket(in, LevelUp2.proxy.getPlayer()));
     }
 
-    private void addTask(INetHandler netHandler, Runnable runnable) {
+    private void addTask(INetHandler netHandler, Runnable runnable)
+    {
         FMLCommonHandler.instance().getWorldThread(netHandler).addScheduledTask(runnable);
     }
 
-    private void addSkillLevel(ByteBuf buf, EntityPlayerMP player) {
+    private void addSkillLevel(ByteBuf buf, ServerPlayerEntity player)
+    {
         int level = buf.readInt();
         if (level == -1) {
-            if (SkillRegistry.getPlayer(player).addLevelFromExperience(player)) {
+            if (SkillRegistry.getPlayer(player).addLevelFromExperience(player))
+            {
                 sendReturnPacket(player);
             }
-        } else {
+        }
+
+        else
+        {
             SkillRegistry.getPlayer(player).changeLevelBank(level);
             sendReturnPacket(player);
         }
     }
 
-    private void sendReturnPacket(EntityPlayerMP player) {
+    private void sendReturnPacket(ServerPlayerEntity player)
+    {
         levelReturn.sendTo(getLevelPacket(player), player);
     }
 
-    private FMLProxyPacket getLevelPacket(EntityPlayerMP player) {
+    private FMLProxyPacket getLevelPacket(ServerPlayerEntity player)
+    {
         ByteBuf buf = Unpooled.buffer();
         buf.writeInt(SkillRegistry.getPlayer(player).getLevelBank());
         FMLProxyPacket pkt = new FMLProxyPacket(new PacketBuffer(buf), CHANNELS[9]);
@@ -124,11 +151,13 @@ public class SkillPacketHandler {
         return pkt;
     }
 
-    private void handleLevelPacket(ByteBuf buf, EntityPlayer player) {
+    private void handleLevelPacket(ByteBuf buf, PlayerEntity player)
+    {
         SkillRegistry.getPlayer(player).changeLevelBank(buf.readInt());
     }
 
-    public static FMLProxyPacket getLevelUpPacket(int level) {
+    public static FMLProxyPacket getLevelUpPacket(int level)
+    {
         ByteBuf buf = Unpooled.buffer();
         buf.writeInt(level);
         FMLProxyPacket pkt = new FMLProxyPacket(new PacketBuffer(buf), CHANNELS[8]);
@@ -136,7 +165,8 @@ public class SkillPacketHandler {
         return pkt;
     }
 
-    public static FMLProxyPacket getActivationPacket() {
+    public static FMLProxyPacket getActivationPacket()
+    {
         ByteBuf buf = Unpooled.buffer();
         buf.writeBoolean(false);
         FMLProxyPacket pkt = new FMLProxyPacket(new PacketBuffer(buf), CHANNELS[7]);
@@ -144,13 +174,15 @@ public class SkillPacketHandler {
         return pkt;
     }
 
-    private void toggleActive(EntityPlayerMP player) {
+    private void toggleActive(ServerPlayerEntity player)
+    {
         SkillRegistry.getPlayer(player).toggleActive();
         String active = SkillRegistry.getPlayer(player).isActive() ? "levelup.skill.active" : "levelup.skill.inactive";
-        player.sendStatusMessage(new TextComponentTranslation(active), true);
+        player.sendMessage(new TranslationTextComponent(active), null);
     }
 
-    public static FMLProxyPacket getClassChangePacket(ResourceLocation name, boolean reclass) {
+    public static FMLProxyPacket getClassChangePacket(ResourceLocation name, boolean reclass)
+    {
         ByteBuf buf = Unpooled.buffer();
         ByteBufUtils.writeUTF8String(buf, name.toString());
         buf.writeBoolean(reclass);
@@ -159,19 +191,27 @@ public class SkillPacketHandler {
         return pkt;
     }
 
-    private void handleClassChange(ByteBuf buf, EntityPlayerMP player) {
+    private void handleClassChange(ByteBuf buf, ServerPlayerEntity player)
+    {
         ResourceLocation cl = new ResourceLocation(ByteBufUtils.readUTF8String(buf));
         boolean reclass = buf.readBoolean();
         if (SkillRegistry.getPlayer(player).getPlayerClass() == null || (reclass && !SkillRegistry.getPlayer(player).getPlayerClass().equals(cl))) {
             SkillRegistry.getPlayer(player).setPlayerClass(cl);
             SkillRegistry.loadPlayer(player);
-            if (reclass && !player.capabilities.isCreativeMode) {
-                if (player.inventory.mainInventory.get(player.inventory.currentItem).getItem() instanceof ItemRespecBook) {
-                    player.inventory.mainInventory.set(player.inventory.currentItem, ItemStack.EMPTY);
-                } else {
-                    for (int i = 0; i < player.inventory.mainInventory.size(); i++) {
-                        if (player.inventory.mainInventory.get(i).getItem() instanceof ItemRespecBook) {
-                            player.inventory.mainInventory.set(i, ItemStack.EMPTY);
+
+            if (reclass && !player.isCreative())
+            {
+                if (player.inventory.items.get(player.inventory.selected).getItem() instanceof ItemRespecBook) {
+                    player.inventory.items.set(player.inventory.selected, ItemStack.EMPTY);
+                }
+
+                else
+                {
+                    for (int i = 0; i < player.inventory.items.size(); i++)
+                    {
+                        if (player.inventory.items.get(i).getItem() instanceof ItemRespecBook)
+                        {
+                            player.inventory.items.set(i, ItemStack.EMPTY);
                             break;
                         }
                     }
@@ -180,7 +220,8 @@ public class SkillPacketHandler {
         }
     }
 
-    private void handlePacket(ByteBuf buf, EntityPlayer player) {
+    private void handlePacket(ByteBuf buf, PlayerEntity player)
+    {
         handleSkillsPacket(buf, player);
         SkillRegistry.loadPlayer(player);
     }

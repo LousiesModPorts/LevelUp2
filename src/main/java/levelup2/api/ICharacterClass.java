@@ -2,15 +2,16 @@ package levelup2.api;
 
 import levelup2.capability.PlayerCapability;
 import levelup2.player.IPlayerClass;
-import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.ItemStack;
-import net.minecraft.util.EnumFacing;
+import net.minecraft.util.Direction;
 import net.minecraft.util.ResourceLocation;
 
 import javax.annotation.Nonnull;
 import java.util.List;
 
-public interface ICharacterClass {
+public interface ICharacterClass
+{
     @Nonnull
     ResourceLocation getClassName();
 
@@ -31,10 +32,14 @@ public interface ICharacterClass {
 
     List<PlayerSkillStorage> getSkillBonuses();
 
-    default int getBonusSkillLevel(IPlayerSkill skill) {
-        if (getSkillBonuses() != null && !getSkillBonuses().isEmpty()) {
-            for (PlayerSkillStorage stor : getSkillBonuses()) {
-                if (stor.getSkill().getSkillName().equals(skill.getSkillName())) {
+    default int getBonusSkillLevel(IPlayerSkill skill)
+    {
+        if (getSkillBonuses() != null && !getSkillBonuses().isEmpty())
+        {
+            for (PlayerSkillStorage stor : getSkillBonuses())
+            {
+                if (stor.getSkill().getSkillName().equals(skill.getSkillName()))
+                {
                     return stor.getLevel();
                 }
             }
@@ -42,16 +47,22 @@ public interface ICharacterClass {
         return 0;
     }
 
-    default ItemStack getRepresentativeStack() {
+    default ItemStack getRepresentativeStack()
+    {
         return getSpecializationSkill() != null ? getSpecializationSkill().getRepresentativeStack() : ItemStack.EMPTY;
     }
 
-    default void applyBonus(EntityPlayer player) {
-        IPlayerClass pClass = player.getCapability(PlayerCapability.PLAYER_CLASS, EnumFacing.UP);
-        if (pClass != null) {
+    default void applyBonus(PlayerEntity player)
+    {
+        IPlayerClass pClass = (IPlayerClass) player.getCapability(PlayerCapability.PLAYER_CLASS, Direction.UP);
+
+        if (pClass != null)
+        {
             pClass.setSkillLevel(getSpecializationSkill().getSkillName(), 1);
-            if (!getSkillBonuses().isEmpty()) {
-                for (PlayerSkillStorage skill : getSkillBonuses()) {
+            if (!getSkillBonuses().isEmpty())
+            {
+                for (PlayerSkillStorage skill : getSkillBonuses())
+                {
                     pClass.setSkillLevel(skill.getSkill().getSkillName(), skill.getLevel());
                 }
             }

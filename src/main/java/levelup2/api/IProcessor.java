@@ -1,18 +1,19 @@
 package levelup2.api;
 
-import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.nbt.CompoundNBT;
 
 import java.util.UUID;
 
-public interface IProcessor {
-    void extraProcessing(EntityPlayer player);
+public interface IProcessor
+{
+    void extraProcessing(PlayerEntity player);
 
     void setUUID(UUID placer);
 
-    EntityPlayer getPlayerFromUUID();
+    PlayerEntity getPlayerFromUUID();
 
-    NBTTagCompound writeToNBT(NBTTagCompound tag);
+    CompoundNBT writeToNBT(CompoundNBT tag);
 
-    void readFromNBT(NBTTagCompound tag);
+    void readFromNBT(CompoundNBT tag);
 }

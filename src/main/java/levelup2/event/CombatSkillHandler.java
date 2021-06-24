@@ -4,25 +4,16 @@ import levelup2.config.LevelUpConfig;
 import levelup2.skills.SkillRegistry;
 import levelup2.util.StealthLib;
 import levelup2.util.Library;
-import net.minecraft.entity.SharedMonsterAttributes;
 import net.minecraft.entity.ai.attributes.AttributeModifier;
-import net.minecraft.entity.ai.attributes.IAttributeInstance;
-import net.minecraft.entity.monster.EntityMob;
-import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.entity.projectile.EntityArrow;
-import net.minecraft.item.EnumAction;
 import net.minecraft.util.*;
-import net.minecraft.util.text.TextComponentTranslation;
 import net.minecraftforge.event.entity.EntityJoinWorldEvent;
 import net.minecraftforge.event.entity.living.LivingDeathEvent;
 import net.minecraftforge.event.entity.living.LivingHurtEvent;
 import net.minecraftforge.event.entity.living.LivingSetAttackTargetEvent;
 import net.minecraftforge.event.entity.player.ArrowNockEvent;
-import net.minecraftforge.fml.common.eventhandler.EventPriority;
-import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
-import net.minecraftforge.fml.common.gameevent.TickEvent;
 
-public class CombatSkillHandler {
+public class CombatSkillHandler
+{
     public static final CombatSkillHandler INSTANCE = new CombatSkillHandler();
 
     private CombatSkillHandler() {}
@@ -40,7 +31,8 @@ public class CombatSkillHandler {
     private static final ResourceLocation SPRINTSPEED = new ResourceLocation("levelup", "sprintspeed");
 
     @SubscribeEvent
-    public void onArrowLoose(EntityJoinWorldEvent evt) {
+    public void onArrowLoose(EntityJoinWorldEvent evt)
+    {
         if (evt.getEntity() instanceof EntityArrow) {
             EntityArrow arrow = (EntityArrow)evt.getEntity();
             if (arrow.shootingEntity instanceof EntityPlayer && SkillRegistry.getPlayer(((EntityPlayer)arrow.shootingEntity)).isActive()) {

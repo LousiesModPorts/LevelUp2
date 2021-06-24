@@ -9,45 +9,52 @@ import levelup2.player.IPlayerClass;
 import levelup2.skills.SkillRegistry;
 import levelup2.util.Library;
 import net.minecraft.entity.Entity;
-import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.entity.player.EntityPlayerMP;
+import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.entity.player.ServerPlayerEntity;
 import net.minecraft.item.ItemStack;
-import net.minecraft.nbt.NBTTagCompound;
-import net.minecraft.util.EnumFacing;
+import net.minecraft.nbt.CompoundNBT;
+import net.minecraft.util.Direction;
 import net.minecraft.util.ResourceLocation;
 import net.minecraftforge.common.capabilities.Capability;
 import net.minecraftforge.common.capabilities.ICapabilitySerializable;
+import net.minecraftforge.common.util.LazyOptional;
 import net.minecraftforge.event.AttachCapabilitiesEvent;
 import net.minecraftforge.event.entity.player.PlayerEvent;
-import net.minecraftforge.fml.common.gameevent.PlayerEvent.PlayerRespawnEvent;
-import net.minecraftforge.fml.common.gameevent.PlayerEvent.PlayerChangedDimensionEvent;
-import net.minecraftforge.fml.common.gameevent.PlayerEvent.PlayerLoggedInEvent;
-import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
+import net.minecraftforge.eventbus.api.SubscribeEvent;
+import net.minecraftforge.fml.common.Mod;
 
-public class CapabilityEventHandler {
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+
+@Mod.EventBusSubscriber
+public class CapabilityEventHandler
+{
     @SubscribeEvent
-    public void onPlayerEntersWorld(AttachCapabilitiesEvent<Entity> evt) {
-        if (evt.getObject() instanceof EntityPlayer) {
-            evt.addCapability(Library.SKILL_LOCATION, new ICapabilitySerializable<NBTTagCompound>() {
+    public static void onPlayerEntersWorld(AttachCapabilitiesEvent<Entity> evt)
+    {
+        if (evt.getObject() instanceof PlayerEntity)
+        {
+            evt.addCapability(Library.SKILL_LOCATION, new ICapabilitySerializable<CompoundNBT>()
+            {
                 IPlayerClass instance = PlayerCapability.PLAYER_CLASS.getDefaultInstance();
 
+                @Nonnull
                 @Override
-                public boolean hasCapability(Capability<?> capability, EnumFacing facing) {
-                    return capability == PlayerCapability.PLAYER_CLASS;
-                }
+                public <T> LazyOptional<T> getCapability(@Nonnull Capability<T> capability, @Nullable Direction side)
+                {
 
-                @Override
-                public <T> T getCapability(Capability<T> capability, EnumFacing facing) {
                     return capability == PlayerCapability.PLAYER_CLASS ? PlayerCapability.PLAYER_CLASS.<T>cast(instance) : null;
                 }
 
                 @Override
-                public NBTTagCompound serializeNBT() {
-                    return ((NBTTagCompound)PlayerCapability.PLAYER_CLASS.getStorage().writeNBT(PlayerCapability.PLAYER_CLASS, instance, null));
+                public CompoundNBT serializeNBT() 
+                {
+                    return ((CompoundNBT)PlayerCapability.PLAYER_CLASS.getStorage().writeNBT(PlayerCapability.PLAYER_CLASS, instance, null));
                 }
 
                 @Override
-                public void deserializeNBT(NBTTagCompound tag) {
+                public void deserializeNBT(CompoundNBT tag) 
+                {
                     PlayerCapability.PLAYER_CLASS.getStorage().readNBT(PlayerCapability.PLAYER_CLASS, instance, null, tag);
                 }
             });
@@ -55,70 +62,96 @@ public class CapabilityEventHandler {
     }
 
     @SubscribeEvent
-    public void onPlayerClone(PlayerEvent.Clone evt) {
-        if (!evt.isWasDeath() || !LevelUpConfig.resetClassOnDeath) {
-            NBTTagCompound data = new NBTTagCompound();
+    public static void onPlayerClone(PlayerEvent.Clone evt)
+    {
+        if (!evt.isWasDeath() || !LevelUpConfig.resetClassOnDeath)
+        {
+            CompoundNBT data = new CompoundNBT();
             SkillRegistry.getPlayer(evt.getOriginal()).saveNBTData(data);
-            SkillRegistry.getPlayer(evt.getEntityPlayer()).loadNBTData(data);
+            SkillRegistry.getPlayer(evt.getPlayer()).loadNBTData(data);
         }
     }
 
     @SubscribeEvent
-    public void onPlayerRespawn(PlayerRespawnEvent evt) {
-        SkillRegistry.loadPlayer(evt.player);
+    public static void onPlayerRespawn(PlayerEvent.PlayerRespawnEvent evt)
+    {
+        SkillRegistry.loadPlayer(evt.getPlayer());
     }
 
     @SubscribeEvent
-    public void onPlayerChangedDimension(PlayerChangedDimensionEvent evt) {
-        SkillRegistry.loadPlayer(evt.player);
+    public static void onPlayerChangedDimension(PlayerEvent.PlayerChangedDimensionEvent evt)
+    {
+        SkillRegistry.loadPlayer(evt.getPlayer());
     }
 
     private static final String BOOK_TAG = "levelup:bookspawn";
 
     @SubscribeEvent
-    public void onPlayerLogin(PlayerLoggedInEvent evt) {
-        if (evt.player instanceof EntityPlayerMP) {
-            spawnBook(evt.player);
-            SkillRegistry.loadPlayer(evt.player);
-            SkillPacketHandler.configChannel.sendTo(SkillPacketHandler.getConfigPacket(LevelUpConfig.getServerProperties()), (EntityPlayerMP)evt.player);
-            for (ResourceLocation loc : SkillRegistry.getSkills().keySet()) {
+    public static void onPlayerLogin(PlayerEvent.PlayerLoggedInEvent evt)
+    {
+        if (evt.getPlayer() instanceof ServerPlayerEntity)
+        {
+            spawnBook(evt.getPlayer());
+            SkillRegistry.loadPlayer(evt.getPlayer());
+            SkillPacketHandler.configChannel.sendTo(SkillPacketHandler.getConfigPacket(LevelUpConfig.getServerProperties()), (ServerPlayerEntity)evt.getPlayer());
+
+            for (ResourceLocation loc : SkillRegistry.getSkills().keySet())
+            {
                 IPlayerSkill skill = SkillRegistry.getSkillFromName(loc);
-                SkillPacketHandler.propertyChannel.sendTo(SkillPacketHandler.getPropertyPackets(skill), (EntityPlayerMP)evt.player);
+                SkillPacketHandler.propertyChannel.sendTo(SkillPacketHandler.getPropertyPackets(skill), (ServerPlayerEntity)evt.getPlayer());
             }
-            for (ResourceLocation loc : SkillRegistry.getClasses().keySet()) {
+
+            for (ResourceLocation loc : SkillRegistry.getClasses().keySet())
+            {
                 ICharacterClass cl = SkillRegistry.getClassFromName(loc);
-                SkillPacketHandler.classChannel.sendTo(SkillPacketHandler.getClassPackets(cl), (EntityPlayerMP)evt.player);
+                SkillPacketHandler.classChannel.sendTo(SkillPacketHandler.getClassPackets(cl), (ServerPlayerEntity)evt.getPlayer());
             }
-            SkillPacketHandler.refreshChannel.sendTo(SkillPacketHandler.getRefreshPacket(), (EntityPlayerMP)evt.player);
+
+            SkillPacketHandler.refreshChannel.sendTo(SkillPacketHandler.getRefreshPacket(), (ServerPlayerEntity)evt.getPlayer());
         }
     }
 
-    private void spawnBook(EntityPlayer player) {
-        if (LevelUpConfig.giveSkillBook) {
-            NBTTagCompound playerData = player.getEntityData();
-            NBTTagCompound data = getTag(playerData, EntityPlayer.PERSISTED_NBT_TAG);
-            if (!data.getBoolean(BOOK_TAG)) {
+    private static void spawnBook(ServerPlayerEntity player)
+    {
+        if (LevelUpConfig.giveSkillBook)
+        {
+            CompoundNBT playerData = player.getEntityData();
+            CompoundNBT data = getTag(playerData, PlayerEntity.PERSISTED_NBT_TAG);
+
+            if (!data.getBoolean(BOOK_TAG))
+            {
                 ItemStack book = new ItemStack(SkillRegistry.skillBook);
-                if (!player.addItemStackToInventory(book)) {
+
+                if (!player.addItemStackToInventory(book))
+                {
                     player.dropItem(book, true);
                 }
+
                 data.setBoolean(BOOK_TAG, true);
                 playerData.setTag(EntityPlayer.PERSISTED_NBT_TAG, data);
             }
         }
     }
 
-    private NBTTagCompound getTag(NBTTagCompound base, String tag) {
+    private static CompoundNBT getTag(CompoundNBT base, String tag)
+    {
         if (base == null)
-            return new NBTTagCompound();
-        return base.getCompoundTag(tag);
+        {
+            return new CompoundNBT();
+        }
+
+        return base.getCompound(tag);
     }
 
-    public static double getDivisor(ResourceLocation skill) {
+    public static double getDivisor(ResourceLocation skill)
+    {
         IPlayerSkill sk = SkillRegistry.getSkillFromName(skill);
-        if (sk != null) {
+
+        if (sk != null)
+        {
             return SkillRegistry.getProperty(sk).getDivisor();
         }
+
         return 1;
     }
 }
